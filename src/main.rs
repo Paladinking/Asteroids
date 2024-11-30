@@ -6,7 +6,9 @@ use sdl2::event::Event;
 use std::time::{Duration, Instant};
 
 mod shapes;
+mod asteroid;
 use shapes::{Point, Polygon};
+use asteroid::Asteroid;
 
 
 pub fn main() {
@@ -28,7 +30,9 @@ pub fn main() {
     canvas.clear();
     canvas.present();
 
-    let mut poly = Polygon {points : vec![Point::new(150.0, 0.0), Point::new(100.0, 100.0), Point::new(150.0, 200.0)]};
+    let poly = Polygon {points : vec![Point::new(150.0, 0.0), Point::new(100.0, 100.0),
+                                          Point::new(150.0, 200.0), Point::new(175.0, 150.0)]};
+    let mut asteroid = Asteroid::new(poly);
 
     let mut event_pump = sdl_context.event_pump().unwrap();
     'running: loop {
@@ -41,7 +45,7 @@ pub fn main() {
                     break 'running
                 },
                 Event::MouseButtonDown { x, y, .. } => {
-                    println!("{}", poly.contains_point(Point::new(x as f64, y as f64)));
+                    println!("{}", asteroid.cotains_point(Point::new(x as f64, y as f64)));
                 },
                 Event::KeyDown { keycode: Some(Keycode::W), .. } => {
                     movement_dirs[0] = 1.0;
@@ -70,16 +74,12 @@ pub fn main() {
                 _ => {}
             }
         }
-        // The rest of the game loop goes here...
-        for p in poly.points.iter_mut() {
-            p.y += (movement_dirs[1] - movement_dirs[0]) * speed * delta;
-            p.x += (movement_dirs[3] - movement_dirs[2]) * speed * delta;
-        }
+        asteroid.tick(delta);
  
         // Draw stuff
         canvas.set_draw_color(Color::RGB(0xff, 0xff, 0xff));
         canvas.clear();
-        poly.render(&mut canvas).unwrap();
+        asteroid.render(&mut canvas).unwrap();
 
         canvas.present();
 

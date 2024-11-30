@@ -1,12 +1,27 @@
-use std::ops::{Add, Sub};
-use sdl2::render::{Canvas, RenderTarget};
-use sdl2::gfx::primitives::DrawRenderer;
-use sdl2::pixels::Color;
+use core::f64;
+use std::ops::{Add, Div, Mul, Sub};
 
 #[derive(Copy, Clone)]
 pub struct Point {
     pub x: f64,
     pub y: f64
+}
+
+impl Div<f64> for Point {
+    type Output = Point;
+
+    fn div(self, rhs: f64) -> Self::Output {
+        return Point {x: self.x / rhs, y : self.y / rhs};
+    }
+}
+
+impl Mul<f64> for Point {
+    type Output = Point;
+
+    fn mul(self, rhs: f64) -> Self::Output {
+        return Point {x: self.x * rhs, y: self.y * rhs};
+    }
+    
 }
 
 impl Add for Point {
@@ -27,26 +42,74 @@ impl Point {
     pub fn new(x: f64, y: f64) -> Point {
         Point {x, y}
     }
+
+    pub fn rotated(&self, rad: f64, centre: Point) -> Point {
+        let p = Point::new(self.x - centre.x, self.y - centre.y);
+
+        let (sa, ca) = rad.sin_cos();
+
+        let x = p.x * ca - p.y * sa;
+        let y = p.y * ca + p.x * sa;
+
+        return Point::new(x + centre.x, y + centre.y);
+    }
 }
 
 pub struct Polygon {
     pub points: Vec<Point>
 }
 
-impl Polygon {
-    pub fn render<T: RenderTarget>(&self, canvas : &mut Canvas<T>) -> Result<(), String>{
-        if self.points.len() == 0 {
-            return Ok(());
+pub struct Lines<'a> {
+    p: Point,
+    it: std::slice::Iter<'a, Point>
+}
+
+impl <'a> Iterator for Lines<'a> {
+    type Item = (Point, Point);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(p) = self.it.next() {
+            let p1 = self.p;
+            self.p = *p;
+            return Some((p1, self.p));
         }
+        return None;
+    }
+}
 
-        let middle = self.points.iter().fold(Point {x: 0.0, y: 0.0}, |p, a| p + *a);
+impl Polygon {
+    pub fn corners(&self) -> usize {
+        return self.points.len();
+    }
 
-        let vx = self.points.iter().map(|p| p.x as i16).collect::<Vec<_>>();
-        let vy = self.points.iter().map(|p| p.y as i16).collect::<Vec<_>>();
+    pub fn lines(&self) -> Lines {
+        assert!(self.points.len() >= 3);
+        return Lines {
+            p: *self.points.last().unwrap(),
+            it: self.points.iter()
+        }
+    }
 
-        canvas.aa_polygon(&vx, &vy, Color::RGB(0, 0, 0))?;
+    pub fn rotate(&mut self, rad: f64) {
+        let centre = self.centre();
+        for p in self.points.iter_mut() {
+            *p = p.rotated(rad, centre);
+        }
+    }
 
-        return Ok(());
+    pub fn centre(&self) -> Point {
+        assert!(self.points.len() > 0);
+
+        let len = self.points.len() as f64;
+
+        return self.points.iter().fold(Point {x: 0.0, y: 0.0}, |p, a| p + *a) / len;
+    }
+
+    pub fn shift(&mut self, dx: f64, dy: f64) {
+        let delta = Point::new(dx, dy);
+        for p in self.points.iter_mut() {
+            *p = *p + delta;
+        }
     }
 
     pub fn contains_point(&self, p : Point) -> bool {
@@ -54,24 +117,11 @@ impl Polygon {
             return false;
         }
 
-        let mut p2: Point = *self.points.last().unwrap();
-        let mut iter = self.points.iter();
         let mut c = false;
-
-        let mut p1 = iter.next().unwrap();
-        loop {
-
+        for (p2, p1) in self.lines() {
             if ((p1.y <= p.y && p.y < p2.y) || (p2.y <= p.y && p.y < p1.y)) &&
                 (p.x < (p2.x - p1.x) * (p.y - p1.y) / (p2.y - p1.y) + p1.x) {
                     c = !c;
-            }
-
-            let next = iter.next();
-            if let Some(p) = next {
-                p2 = *p1;
-                p1 = p;
-            } else {
-                break;
             }
         }
 
