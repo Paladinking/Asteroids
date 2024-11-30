@@ -30,9 +30,12 @@ pub fn main() {
     canvas.clear();
     canvas.present();
 
-    let poly = Polygon {points : vec![Point::new(150.0, 0.0), Point::new(100.0, 100.0),
+    let p1 = Polygon {points : vec![Point::new(150.0, 0.0), Point::new(100.0, 100.0),
                                           Point::new(150.0, 200.0), Point::new(175.0, 150.0)]};
-    let mut asteroid = Asteroid::new(poly);
+    let p2 = Polygon {points: vec![Point::new(0.0, 0.0), Point::new(50.0, 50.0), Point::new(33.0, 50.0), Point::new(2.0, 0.0)]};
+
+    let mut asteroids = vec![Asteroid::new(p1, Point::new(100.0, 100.0), 77.0, -123.0, 2.0),
+                             Asteroid::new(p2, Point::new(50.0, 50.0), -33.0, 20.0, 1.0)];
 
     let mut event_pump = sdl_context.event_pump().unwrap();
     'running: loop {
@@ -43,9 +46,6 @@ pub fn main() {
                 Event::Quit {..} |
                 Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
                     break 'running
-                },
-                Event::MouseButtonDown { x, y, .. } => {
-                    println!("{}", asteroid.cotains_point(Point::new(x as f64, y as f64)));
                 },
                 Event::KeyDown { keycode: Some(Keycode::W), .. } => {
                     movement_dirs[0] = 1.0;
@@ -74,12 +74,16 @@ pub fn main() {
                 _ => {}
             }
         }
-        asteroid.tick(delta);
+        for a in &mut asteroids {
+            a.tick(delta);
+        }
  
         // Draw stuff
         canvas.set_draw_color(Color::RGB(0xff, 0xff, 0xff));
         canvas.clear();
-        asteroid.render(&mut canvas).unwrap();
+        for a in &asteroids {
+            a.render(&mut canvas).unwrap();
+        }
 
         canvas.present();
 

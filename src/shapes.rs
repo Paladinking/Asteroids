@@ -1,7 +1,21 @@
 use core::f64;
 use std::ops::{Add, Div, Mul, Sub};
 
-#[derive(Copy, Clone)]
+#[derive(Debug)]
+pub struct Rectangle {
+    pub x: f64,
+    pub y: f64,
+    pub w: f64,
+    pub h: f64
+}
+
+impl Rectangle {
+    pub fn new(x: f64, y: f64, w: f64, h: f64) -> Rectangle {
+        Rectangle {x, y, w, h}
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
 pub struct Point {
     pub x: f64,
     pub y: f64
@@ -22,6 +36,14 @@ impl Mul<f64> for Point {
         return Point {x: self.x * rhs, y: self.y * rhs};
     }
     
+}
+
+impl Mul<Point> for f64 {
+    type Output = Point;
+
+    fn mul(self, rhs: Point) -> Self::Output {
+        return rhs * self;
+    }
 }
 
 impl Add for Point {
@@ -52,6 +74,10 @@ impl Point {
         let y = p.y * ca + p.x * sa;
 
         return Point::new(x + centre.x, y + centre.y);
+    }
+
+    pub fn dot(&self, other: Point) -> f64 {
+        return other.x * self.x + other.y * self.y;
     }
 }
 
@@ -90,6 +116,30 @@ impl Polygon {
         }
     }
 
+    pub fn bounds(&self) -> Rectangle {
+        assert!(self.points.len() > 0);
+
+        let mut it = self.points.iter();
+
+        let mut min = *it.next().unwrap();
+        let mut max = min;
+
+        for p in it {
+            if p.x < min.x {
+                min.x = p.x;
+            } else if p.x > max.x {
+                max.x = p.x;
+            }
+            if p.y < min.y {
+                min.y = p.y;
+            } else if p.y > max.y {
+                max.y = p.y;
+            }
+        }
+
+        return Rectangle::new(min.x, min.y, max.x - min.x, max.y - min.y);
+    }
+
     pub fn rotate(&mut self, rad: f64) {
         let centre = self.centre();
         for p in self.points.iter_mut() {
@@ -110,6 +160,14 @@ impl Polygon {
         for p in self.points.iter_mut() {
             *p = *p + delta;
         }
+    }
+
+    pub fn area(&self) -> f64 {
+        let mut sum = 0.0;
+        for (p1, p2) in self.lines() {
+            sum += p1.x * p2.y - p1.y * p2.x;
+        }
+        return 0.5 * sum.abs();
     }
 
     pub fn contains_point(&self, p : Point) -> bool {
