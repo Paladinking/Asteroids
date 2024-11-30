@@ -78,7 +78,7 @@ impl Asteroid {
         let vx = self.shape.points.iter().map(|p| p.x as i16).collect::<Vec<_>>();
         let vy = self.shape.points.iter().map(|p| p.y as i16).collect::<Vec<_>>();
 
-        canvas.aa_polygon(&vx, &vy, Color::RGB(0, 0, 0))?;
+        canvas.aa_polygon(&vx, &vy, Color::RGB(0xff, 0xff, 0xff))?;
 
         return Ok(());
     }
