@@ -16,6 +16,13 @@ impl Add for Point {
     }
 }
 
+impl Sub for Point {
+    type Output = Point;
+    fn sub(self, rhs: Point) -> Self::Output {
+        return Point {x: self.x - rhs.x, y: self.y - rhs.y};
+    }
+}
+
 impl Point {
     pub fn new(x: f64, y: f64) -> Point {
         Point {x, y}
@@ -41,20 +48,6 @@ impl Polygon {
 
         return Ok(());
     }
-
-    /*
-    int pnpoly(int npol, float *xp, float *yp, float x, float y)
-    {
-      int i, j, c = 0;
-      for (i = 0, j = npol-1; i < npol; j = i++) {
-        if ((((yp[i] <= y) && (y < yp[j])) ||
-             ((yp[j] <= y) && (y < yp[i]))) &&
-            (x < (xp[j] - xp[i]) * (y - yp[i]) / (yp[j] - yp[i]) + xp[i]))
-          c = !c;
-      }
-      return c;
-    }
-     */
 
     pub fn contains_point(&self, p : Point) -> bool {
         if self.points.len() <= 2 {
