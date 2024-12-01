@@ -8,7 +8,7 @@ use sdl2::pixels::Color;
 use crate::{WINDOW_WIDTH, WINDOW_HEIGHT};
 
 pub struct Asteroid {
-    shape: Polygon,
+    pub shape: Polygon,
     dx : f64,
     dy: f64,
 
@@ -18,6 +18,7 @@ pub struct Asteroid {
 }
 
 const WINDOW_MARGIN: f64 = 250.0;
+const MIN_AREA: f64 = 500.0;
 
 
 impl Asteroid {
@@ -29,7 +30,7 @@ impl Asteroid {
     }
 
     pub fn small(&self) -> bool {
-        return self.shape.area() < 50.0;
+        return self.shape.area() < MIN_AREA;
     }
 
     pub fn split(&mut self, p1: Point, p2: Point) -> Option<Asteroid> {
@@ -59,12 +60,14 @@ impl Asteroid {
                         assert!(v.len() > 2);
                         assert!(v2.len() > 2);
                         self.shape.points = v;
-                        let poly = Polygon {points: v2};
-                        let mut diff = self.shape.centre() - poly.centre();
+                        let poly = Polygon::new(v2);
+                        let mut diff = self.shape.centre - poly.centre;
                         diff = diff / diff.len();
                         let v = Point::new(self.dx, self.dy) - 50.0 * diff;
                         self.dx += 50.0 * diff.x;
                         self.dy += 50.0 * diff.y;
+                        self.shape.calc_centre();
+                        self.shape.calc_radius();
                         return Some(Asteroid::new(poly, Point::new(0.0, 0.0), v.x, v.y, self.rot));
                     }
                 }
@@ -105,7 +108,7 @@ impl Asteroid {
         }
         let dx = vel.x;
         let dy = vel.y;
-        return Asteroid::new(Polygon{ points }, pos, dx, dy, 0.0);
+        return Asteroid::new(Polygon::new(points), pos, dx, dy, 0.0);
     }
 
     pub fn collides(&self, other: &Asteroid) -> Option<(Point, Point, Point)> {
@@ -116,10 +119,10 @@ impl Asteroid {
         const ELASTICITY: f64 = 0.5;
 
         self.shape.shift(shift.x, shift.y);
-        let centre_a = self.shape.centre();
+        let centre_a = self.shape.centre;
         let ra = p - centre_a;
 
-        let centre_b = other.shape.centre();
+        let centre_b = other.shape.centre;
         let rb = p - centre_b;
 
         let vrel = Point::new(self.dx - self.rot * ra.y -  (other.dx - other.rot * rb.y),
@@ -150,7 +153,7 @@ impl Asteroid {
         self.shape.shift(offset.x, offset.y);
         p = p + offset;
 
-        let centre_a = self.shape.centre();
+        let centre_a = self.shape.centre;
         let ra = p - centre_a;
 
         let vrel = Point::new(self.dx - self.rot * ra.y, self.dy + self.rot * ra.x).dot(normal);
@@ -194,16 +197,8 @@ impl Asteroid {
         let vx = self.shape.points.iter().map(|p| p.x as i16).collect::<Vec<_>>();
         let vy = self.shape.points.iter().map(|p| p.y as i16).collect::<Vec<_>>();
 
-        let centre = self.shape.centre();
-        let screen_centre = Point::new(WINDOW_WIDTH / 2.0, WINDOW_HEIGHT / 2.0);
-        let pos_len = ((screen_centre.x - centre.x) * (screen_centre.x - centre.x) + (screen_centre.y - centre.y) * (screen_centre.y - centre.y)).sqrt();
-        let vel_len = (self.dx * self.dx + self.dy * self.dy).sqrt();
-        if (self.dx / vel_len * (screen_centre.x - centre.x) / pos_len + self.dy / vel_len * (screen_centre.y - centre.y) / pos_len) < -1.0 {
-            canvas.aa_polygon(&vx, &vy, Color::RGB(0xff, 0x00, 0x00))?;
-        } else {
-
         canvas.aa_polygon(&vx, &vy, Color::RGB(0xff, 0xff, 0xff))?;
-        }
+
 
         // let mut i = 0;
         // 'draw_lines: loop {
@@ -220,7 +215,7 @@ impl Asteroid {
         return Ok(());
     }
 
-    pub fn cotains_point(&self, p: Point) -> bool {
-        return self.shape.contains_point(p);
-    }
+    // pub fn contains_point(&self, p: Point) -> bool {
+    //     return self.shape.contains_point(p);
+    // }
 }

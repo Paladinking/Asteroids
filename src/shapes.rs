@@ -136,7 +136,9 @@ pub fn line_segment_intersect(pa1: Point, pa2: Point, pb1: Point, pb2: Point) ->
 }
 
 pub struct Polygon {
-    pub points: Vec<Point>
+    pub points: Vec<Point>,
+    pub centre: Point,
+    pub radius: f64,
 }
 
 pub struct Lines<'a> {
@@ -158,6 +160,32 @@ impl <'a> Iterator for Lines<'a> {
 }
 
 impl Polygon {
+    pub fn new(points: Vec<Point>) -> Polygon {
+        let mut poly = Polygon{points, centre: Point::new(0.0, 0.0), radius: 0.0};
+        poly.calc_centre();
+        poly.calc_radius();
+        return poly;
+    }
+
+    pub fn calc_centre(&mut self) {
+        let mut centre = Point::new(0.0, 0.0);
+        for p in self.points.iter() {
+            centre = centre + *p;
+        }
+        self.centre = centre / self.points.len() as f64;
+    }
+
+    pub fn calc_radius(&mut self) {
+        let mut radius: f64 = 0.0;
+        for p in self.points.iter() {
+            let len_sqrd = (p.x-self.centre.x) * (p.x-self.centre.x) + (p.y-self.centre.y) * (p.y-self.centre.y);
+            if radius < len_sqrd {
+                radius = len_sqrd;
+            }
+        }
+        self.radius = radius.sqrt();
+    }
+
     pub fn corners(&self) -> usize {
         return self.points.len();
     }
@@ -200,7 +228,6 @@ impl Polygon {
         let mut normal = Point::new(0.0, 0.0);
         let mut dist = f64::MAX;
 
-        let centre = self.centre();
         for (p1, p2) in self.lines() {
             let a = p - p1;
             let b = p2 - p1;
@@ -212,7 +239,7 @@ impl Polygon {
                 let norm = Point::new(b.y, -b.x);
                 let p = norm + close;
                 let d = - norm.dot(close);
-                if (p.dot(norm) + d).signum() != (centre.dot(norm) + d).signum() {
+                if (p.dot(norm) + d).signum() != (self.centre.dot(norm) + d).signum() {
                     normal = norm;
                 } else {
                     normal = Point::new(-norm.x, -norm.y);
@@ -245,7 +272,7 @@ impl Polygon {
     fn check_collision(&self, other: &Polygon) -> Option<(Point, Point, Point)> {
         for p in &other.points {
             if self.contains_point(*p) {
-                let centre = other.centre();
+                let centre = other.centre;
                 if let Some((col, normal)) = self.get_intersect(*p, centre) {
                     return Some((col, col -*p, normal));
                 } else {
@@ -268,25 +295,26 @@ impl Polygon {
     }
 
     pub fn rotate(&mut self, rad: f64) {
-        let centre = self.centre();
         for p in self.points.iter_mut() {
-            *p = p.rotated(rad, centre);
+            *p = p.rotated(rad, self.centre);
         }
+        self.calc_centre();
     }
 
-    pub fn centre(&self) -> Point {
-        assert!(self.points.len() > 0);
+    // pub fn centre(&self) -> Point {
+    //     assert!(self.points.len() > 0);
 
-        let len = self.points.len() as f64;
+    //     let len = self.points.len() as f64;
 
-        return self.points.iter().fold(Point {x: 0.0, y: 0.0}, |p, a| p + *a) / len;
-    }
+    //     return self.points.iter().fold(Point {x: 0.0, y: 0.0}, |p, a| p + *a) / len;
+    // }
 
     pub fn shift(&mut self, dx: f64, dy: f64) {
         let delta = Point::new(dx, dy);
         for p in self.points.iter_mut() {
             *p = *p + delta;
         }
+        self.calc_centre();
     }
 
     pub fn area(&self) -> f64 {
