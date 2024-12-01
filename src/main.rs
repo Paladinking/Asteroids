@@ -65,7 +65,7 @@ pub fn main() {
                     break 'running
                 },
                 Event::MouseButtonDown { x, y, .. } => {
-                    player.fire(Point{ x: x as f64, y: y as f64 });
+                    player.fire(Point{ x: x as f64, y: y as f64 }, &mut asteroids);
                 },
                 Event::KeyDown { keycode: Some(Keycode::W), .. } => {
                     player.set_mov_dir(0, true);

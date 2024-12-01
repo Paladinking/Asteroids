@@ -1,6 +1,7 @@
 use sdl2::render::{Canvas, RenderTarget};
 use sdl2::gfx::primitives::DrawRenderer;
 use sdl2::pixels::Color;
+use crate::asteroid::Asteroid;
 use crate::shapes::{Point, Polygon};
 
 const ACCELERATION: f64 = 500.0;
@@ -110,10 +111,23 @@ impl Player {
         self.mov_dir[dir] = if val {1.0} else {0.0};
     }
 
-    pub fn fire(&mut self, target: Point) {
+    pub fn fire(&mut self, target: Point, asteroids: &mut Vec<Asteroid>) {
         self.laser.pos_start = self.pos;
         let dir = (target - self.pos) / ((target - self.pos).x * (target - self.pos).x + (target - self.pos).y * (target - self.pos).y).sqrt();
-        self.laser.pos_end = self.pos + dir * LASER_LENGTH;
+        self.laser.pos_end = target + dir * LASER_LENGTH;
         self.firing = FIRING_TIME;
+        let mut new = Vec::new();
+        asteroids.retain_mut(|a| {
+            if let Some(a2) = a.split(self.laser.pos_start, self.laser.pos_end) {
+                if !a2.small() {
+                    new.push(a2);
+                }
+                if a.small() {
+                    return false;
+                }
+            }
+            return true;
+        });
+        asteroids.append(&mut new);
     }
 }

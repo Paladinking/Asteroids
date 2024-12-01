@@ -1,3 +1,4 @@
+use crate::shapes::line_intersects;
 use crate::shapes::Polygon;
 use crate::shapes::Point;
 use rand;
@@ -25,6 +26,44 @@ impl Asteroid {
         let mass = poly.area();
         let inertia = mass * mass.sqrt() * 10.0;
         Asteroid{shape: poly, dx, dy, rot, mass, inertia}
+    }
+
+    pub fn small(&self) -> bool {
+        return self.shape.area() < 100.0;
+    }
+
+    pub fn split(&mut self, p1: Point, p2: Point) -> Option<Asteroid> {
+        let mut it = self.shape.lines().enumerate();
+
+        loop {
+            let (ix, (pa1, pa2)) = if let Some((ix, (pa1, pa2))) = it.next() { (ix, (pa1, pa2)) } else { return None; };
+            if let Some(p) = line_intersects(pa1, pa2, p1, p2) {
+                loop {
+                    let (ix2, (pb1, pb2)) = if let Some((ix2, (pb1, pb2))) = it.next() { (ix2, (pb1, pb2)) } else { return None; };
+                    if let Some(q) = line_intersects(pb1, pb2, p1, p2) {
+                        let mut v = Vec::new();
+                        let mut v2 = Vec::new();
+                        v2.push(p);
+                        for p in &self.shape.points[0..ix] {
+                            v.push(*p);
+                        }
+                        for p in &self.shape.points[ix..(ix2)] {
+                            v2.push(*p);
+                        }
+                        v2.push(q);
+                        v.push(p);
+                        v.push(q);
+                        for p in &self.shape.points[(ix2)..] {
+                            v.push(*p);
+                        }
+                        assert!(v.len() > 2);
+                        assert!(v2.len() > 2);
+                        self.shape.points = v;
+                        return Some(Asteroid::new(Polygon {points: v2}, Point::new(0.0, 0.0), self.dx, self.dy, self.rot));
+                    }
+                }
+            }
+        }
     }
 
     pub fn get_randomized(approx_radius: f64, pos: Point, vel: Point) -> Asteroid {
