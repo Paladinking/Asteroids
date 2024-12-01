@@ -105,7 +105,21 @@ impl Point {
     }
 }
 
-fn line_intersect(pa1: Point, pa2: Point, pb1: Point, pb2: Point) -> Option<Point> {
+// pa1 -> pa2 line segment
+// pb1 -> pb2 infinite line
+pub fn line_intersects(pa1: Point, pa2: Point, pb1: Point, pb2: Point) -> Option<Point> {
+    let denom = (pa1.x - pa2.x) * (pb1.y - pb2.y) - (pa1.y - pa2.y) * (pb1.x - pb2.x);
+    if denom == 0.0 {
+        return None;
+    }
+    let t = ((pa1.x - pb1.x) * (pb1.y - pb2.y) - (pa1.y - pb1.y) * (pb1.x - pb2.x)) / denom;
+    if 0.0 <= t && t <= 1.0 {
+        return Some(pa1 + t * (pa2 - pa1));
+    }
+    return None;
+}
+
+pub fn line_segment_intersect(pa1: Point, pa2: Point, pb1: Point, pb2: Point) -> Option<Point> {
     let denom = (pa1.x - pa2.x) * (pb1.y - pb2.y) - (pa1.y - pa2.y) * (pb1.x - pb2.x);
     if denom == 0.0 {
         return None;
@@ -214,7 +228,7 @@ impl Polygon {
     // p2 should be iside, p1 outside
     fn get_intersect(&self, p1: Point, p2: Point) -> Option<(Point, Point)> {
         for (p3, p4) in self.lines() {
-            if let Some(p) = line_intersect(p1, p2, p3, p4) {
+            if let Some(p) = line_segment_intersect(p1, p2, p3, p4) {
                 //println!("{:?}, {:?}, {:?}, {:?}", p1, p2, p3, p4);
                 let delta = p4 - p3;
                 let rotated = Point::new(-delta.y, delta.x);

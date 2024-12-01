@@ -113,5 +113,12 @@ impl Player {
         let dir = (target - self.pos) / ((target - self.pos).x * (target - self.pos).x + (target - self.pos).y * (target - self.pos).y).sqrt();
         self.laser.pos_end = target + dir * LASER_LENGTH;
         self.firing = FIRING_TIME;
+        let mut new = Vec::new();
+        for a in asteroids.iter_mut() {
+            if let Some(a2) = a.split(self.laser.pos_start, self.laser.pos_end) {
+                new.push(a2);
+            }
+        }
+        asteroids.append(&mut new);
     }
 }
