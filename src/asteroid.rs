@@ -1,5 +1,3 @@
-use std::time::Instant;
-
 use crate::shapes::Polygon;
 use crate::shapes::Point;
 use sdl2::render::{Canvas, RenderTarget};
@@ -24,8 +22,40 @@ impl Asteroid {
         Asteroid{shape: poly, dx, dy, rot, mass, inertia}
     }
 
-    fn solve_polygon_collision(&mut self, other: &mut Asteroid, p: Point) {
+    pub fn collides(&self, other: &Asteroid) -> Option<(Point, Point, Point)> {
+        return self.shape.get_collision(&other.shape);
+    }
 
+    pub fn solve_polygon_collision(&mut self, other: &mut Asteroid, p: Point, shift: Point, normal: Point) {
+        const ELASTICITY: f64 = 1.0;
+
+        self.shape.shift(shift.x, shift.y);
+        let centre_a = self.shape.centre();
+        let ra = p - centre_a;
+
+        let centre_b = other.shape.centre();
+        let rb = p - centre_b;
+
+        let vrel = Point::new(self.dx - self.rot * ra.y -  (other.dx - other.rot * rb.y),
+                              self.dy + self.rot * ra.x - (other.dy + other.rot * rb.x)).dot(normal);
+
+        let ra_x_n = ra.x * normal.y - ra.y * normal.x;
+        let rb_x_n = rb.x * normal.y - rb.y * normal.x;
+        let cross_thing_a = Point::new(ra.y * -ra_x_n, ra.x * ra_x_n);
+        let cross_thing_b = Point::new(rb.y * -rb_x_n, rb.x * rb_x_n);
+
+        let norm_part = normal.dot(cross_thing_a / self.inertia + cross_thing_b / other.inertia);
+
+        let j = -(ELASTICITY + 1.0) * vrel / (1.0 / self.mass + 1.0 / other.mass + norm_part);
+        let vel_a = Point::new(self.dx, self.dy) + j * normal / self.mass;
+        let vel_b = Point::new(other.dx, other.dy) - j * normal / other.mass;
+        self.rot = self.rot + j * ra_x_n / self.inertia;
+        self.dx = vel_a.x;
+        self.dy = vel_a.y;
+
+        other.rot = other.rot - j * rb_x_n / other.inertia;
+        other.dx = vel_b.x;
+        other.dy = vel_b.y;
     }
 
     fn solve_wall_collision(&mut self, offset: Point, mut p : Point, normal: Point) {

@@ -1,5 +1,5 @@
 use core::f64;
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{Add, Div, Mul, Sub, Neg};
 
 #[derive(Debug)]
 pub struct Rectangle {
@@ -19,6 +19,14 @@ impl Rectangle {
 pub struct Point {
     pub x: f64,
     pub y: f64
+}
+
+impl Neg for Point {
+    type Output = Point;
+
+    fn neg(self) -> Self::Output {
+        return Point {x: -self.x, y: -self.y};
+    }
 }
 
 impl Div<f64> for Point {
@@ -79,6 +87,39 @@ impl Point {
     pub fn dot(&self, other: Point) -> f64 {
         return other.x * self.x + other.y * self.y;
     }
+
+    pub fn len_squared(&self) -> f64 {
+        return self.dot(*self);
+    }
+
+    pub fn len(&self) -> f64 {
+        return self.len_squared().sqrt();
+    }
+
+    pub fn dist_squared(&self, other: Point) -> f64 {
+        return (*self - other).len_squared();
+    }
+    
+    pub fn dist(&self, other: Point) -> f64 {
+        return (*self - other).len();
+    }
+}
+
+fn line_intersect(pa1: Point, pa2: Point, pb1: Point, pb2: Point) -> Option<Point> {
+    let denom = (pa1.x - pa2.x) * (pb1.y - pb2.y) - (pa1.y - pa2.y) * (pb1.x - pb2.x);
+    if denom == 0.0 {
+        return None;
+    }
+    let t = ((pa1.x - pb1.x) * (pb1.y - pb2.y) - (pa1.y - pb1.y) * (pb1.x - pb2.x)) / denom;
+    let u = -((pa1.x - pa2.x) * (pa1.y - pb1.y) - (pa1.y - pa2.y) * (pa1.x - pb1.x)) / denom;
+
+    println!("{}, {}", t, u);
+
+    if 0.0 <= t && t <= 5.0 && 0.0 <= u && u <= 1.0 {
+        return Some(pa1 + t * (pa2 - pa1));
+    }
+
+    return None;
 }
 
 pub struct Polygon {
@@ -138,6 +179,79 @@ impl Polygon {
         }
 
         return Rectangle::new(min.x, min.y, max.x - min.x, max.y - min.y);
+    }
+
+    // Point and normal
+    fn closest_point(&self, p: Point) -> (Point, Point) {
+        let mut closest = Point::new(0.0, 0.0);
+        let mut normal = Point::new(0.0, 0.0);
+        let mut dist = f64::MAX;
+
+        let centre = self.centre();
+        for (p1, p2) in self.lines() {
+            let a = p - p1;
+            let b = p2 - p1;
+            let proj = (a.dot(b) / b.dot(b)) * b;
+            let close = p1 + proj;
+            let d = p.dist_squared(close);
+            if d < dist {
+                dist = d;
+                let norm = Point::new(b.y, -b.x);
+                let p = norm + close;
+                let d = - norm.dot(close);
+                if (p.dot(norm) + d).signum() != (centre.dot(norm) + d).signum() {
+                    normal = norm;
+                } else {
+                    normal = Point::new(-norm.x, -norm.y);
+                }
+
+                closest = close;
+            }
+        }
+
+        return (closest, normal);
+    }
+
+    // point and normal
+    // p2 should be iside, p1 outside
+    fn get_intersect(&self, p1: Point, p2: Point) -> Option<(Point, Point)> {
+        for (p3, p4) in self.lines() {
+            if let Some(p) = line_intersect(p1, p2, p3, p4) {
+                //println!("{:?}, {:?}, {:?}, {:?}", p1, p2, p3, p4);
+                let delta = p4 - p3;
+                let rotated = Point::new(-delta.y, delta.x);
+                let out = p1 - p;
+                
+                let normal = (rotated.dot(out) / rotated.dot(rotated)) * rotated;
+                return Some((p, normal / normal.len()));
+            } 
+        }
+        return None;
+    }
+
+    fn check_collision(&self, other: &Polygon) -> Option<(Point, Point, Point)> {
+        for p in &other.points {
+            if self.contains_point(*p) {
+                let centre = other.centre();
+                if let Some((col, normal)) = self.get_intersect(*p, centre) {
+                    return Some((col, col -*p, normal));
+                } else {
+                    panic!("This is bad....");
+                }
+            }
+        }
+        return None;
+    } 
+
+    // Returns tuple: (Point of collision, How to move self to not intersect, normal)
+    pub fn get_collision(&self, other: &Polygon) -> Option<(Point, Point, Point)> {
+        if let Some(res) = self.check_collision(other) {
+            return Some(res);
+        }
+        if let Some((col, offset, normal)) = other.check_collision(self) {
+            return Some((col, -offset, normal));
+        }
+        return None;
     }
 
     pub fn rotate(&mut self, rad: f64) {
