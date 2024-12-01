@@ -1,5 +1,6 @@
 use crate::shapes::Polygon;
 use crate::shapes::Point;
+use rand;
 use sdl2::render::{Canvas, RenderTarget};
 use sdl2::gfx::primitives::DrawRenderer;
 use sdl2::pixels::Color;
@@ -20,6 +21,43 @@ impl Asteroid {
         let mass = poly.area();
         let inertia = mass * mass.sqrt() * 10.0;
         Asteroid{shape: poly, dx, dy, rot, mass, inertia}
+    }
+
+    pub fn get_randomized(approx_radius: f64) -> Asteroid {
+        let num_points = (rand::random::<f64>() * 6.0) as i64 + 5;
+        let mut points: Vec<Point> = vec![];
+        let centre = Point::new(0.0, 0.0);
+        let pos = Point::new(rand::random::<f64>() * 400.0 + 100.0, rand::random::<f64>() * 600.0 + 100.0);
+        let safe_margin: f64 = 2.0;
+        for i in 0..num_points {
+            points.push(Point::new(
+                0.0,
+                approx_radius * (safe_margin + rand::random::<f64>()) / (safe_margin + 1.0)).rotated(
+                     2.0 * 3.1415 * i as f64 / num_points as f64, centre
+                    )
+                ) 
+        }
+        let mut i = 0;
+        'make_convex: loop {
+            let first_point = points[i % points.len()];
+            let second_point = points[(i+1) % points.len()];
+            let third_point = points[(i+2) % points.len()];
+            let is_to_left = ((third_point.x - first_point.x) * (first_point.y - second_point.y) - (first_point.y - third_point.y) * (second_point.x - first_point.x)).is_sign_negative();
+            if is_to_left {
+                points.remove((i+1) % points.len());
+                // print!(" got removed!!!\n");
+                i = 0;
+            } else {
+                i += 1;
+                // print!(" is kept...\n");
+            }
+            if points.len() < 4 || i >= points.len() {
+                break 'make_convex;
+            }
+        }
+        let dx = (rand::random::<f64>()-0.5) * approx_radius;
+        let dy = (rand::random::<f64>()-0.5) * approx_radius;
+        return Asteroid::new(Polygon{ points }, pos, dx, dy, 0.0);
     }
 
     pub fn collides(&self, other: &Asteroid) -> Option<(Point, Point, Point)> {
@@ -110,6 +148,19 @@ impl Asteroid {
 
         canvas.aa_polygon(&vx, &vy, Color::RGB(0xff, 0xff, 0xff))?;
 
+
+        // let mut i = 0;
+        // 'draw_lines: loop {
+        //     let first_point = self.shape.points[i % self.shape.points.len()];
+        //     let second_point = self.shape.points[(i+1) % self.shape.points.len()];
+        //     let third_point = self.shape.points[(i+2) % self.shape.points.len()];
+        //     let is_to_right = ((third_point.x - first_point.x) * (first_point.y - second_point.y) - (first_point.y - third_point.y) * (second_point.x - first_point.x)).is_sign_positive();
+        //     canvas.aa_line(first_point.x as i16, first_point.y as i16, third_point.x as i16, third_point.y as i16, if is_to_right {Color::RGB(0xff, 0x00, 0x00)} else {Color::RGB(0x00, 0xff, 0x00)})?;
+        //     i += 1;
+        //     if i > self.shape.points.len()-1 {
+        //         break 'draw_lines;
+        //     }
+        // }
         return Ok(());
     }
 

@@ -34,8 +34,12 @@ pub fn main() {
                                           Point::new(150.0, 200.0), Point::new(175.0, 150.0)]};
     let p2 = Polygon {points: vec![Point::new(0.0, 0.0), Point::new(100.0, 100.0), Point::new(63.0, 50.0), Point::new(0.0, 0.0)]};
 
-    let mut asteroids = vec![Asteroid::new(p1, Point::new(100.0, 100.0), -77.0, -123.0, 1.0),
-                             Asteroid::new(p2, Point::new(50.0, 50.0), 73.0, 20.0, 1.0)];
+    let mut asteroids = vec![Asteroid::new(p1, Point::new(100.0, 100.0), 77.0, -123.0, 2.0),
+                             Asteroid::new(p2, Point::new(50.0, 50.0), -133.0, 20.0, 1.0),
+                             ];
+    for _i in 0..10 {
+        asteroids.push(Asteroid::get_randomized(75.0));
+    }
     let player_poly = Polygon {points : vec![Point::new(25.0, -45.0), Point::new(-25.0, 0.0), Point::new(25.0, 45.0)]};
 
     let mut player = Player::new(player_poly, Point::new(50.0, 50.0));
