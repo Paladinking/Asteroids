@@ -113,9 +113,7 @@ fn line_intersect(pa1: Point, pa2: Point, pb1: Point, pb2: Point) -> Option<Poin
     let t = ((pa1.x - pb1.x) * (pb1.y - pb2.y) - (pa1.y - pb1.y) * (pb1.x - pb2.x)) / denom;
     let u = -((pa1.x - pa2.x) * (pa1.y - pb1.y) - (pa1.y - pa2.y) * (pa1.x - pb1.x)) / denom;
 
-    println!("{}, {}", t, u);
-
-    if 0.0 <= t && t <= 5.0 && 0.0 <= u && u <= 1.0 {
+    if 0.0 <= t && t <= 1.0 && 0.0 <= u && u <= 1.0 {
         return Some(pa1 + t * (pa2 - pa1));
     }
 
@@ -236,7 +234,7 @@ impl Polygon {
                 if let Some((col, normal)) = self.get_intersect(*p, centre) {
                     return Some((col, col -*p, normal));
                 } else {
-                    panic!("This is bad....");
+                    return None;
                 }
             }
         }
