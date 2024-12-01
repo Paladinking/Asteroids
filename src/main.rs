@@ -13,13 +13,16 @@ use player::Player;
 mod asteroid;
 use asteroid::Asteroid;
 
+const WINDOW_WIDTH: f64 = 1600.0;
+const WINDOW_HEIGHT: f64 = 900.0;
+
 
 pub fn main() {
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
     let mut time = Instant::now();
 
-    let window = video_subsystem.window("rust-sdl2 demo", 800, 600)
+    let window = video_subsystem.window("rust-sdl2 demo", WINDOW_WIDTH as u32, WINDOW_HEIGHT as u32)
         .position_centered()
         .build()
         .unwrap();
@@ -37,12 +40,19 @@ pub fn main() {
     let mut asteroids = vec![Asteroid::new(p1, Point::new(100.0, 100.0), 77.0, -123.0, 2.0),
                              Asteroid::new(p2, Point::new(50.0, 50.0), -133.0, 20.0, 1.0),
                              ];
-    for _i in 0..10 {
-        asteroids.push(Asteroid::get_randomized(75.0));
+    let mut meteoroid_spawner = Point::new(WINDOW_WIDTH / 2.0, -WINDOW_WIDTH * 1.0);
+    let screen_centre = Point::new(WINDOW_WIDTH / 2.0, WINDOW_HEIGHT / 2.0);
+    let start_meteoroids = 10;
+    for _i in 0..start_meteoroids {
+        let vel = Point::new(screen_centre.x - meteoroid_spawner.x, screen_centre.y - meteoroid_spawner.y);
+        // print!("start pos: {}x, {}y, start vel: {}x, {}y\n", meteoroid_spawner.x, meteoroid_spawner.y, vel.x, vel.y);
+        let new_asteroid = Asteroid::get_randomized(75.0, meteoroid_spawner, vel / ((2.0 + rand::random::<f64>()) * 5.0));
+        asteroids.push(new_asteroid);
+        meteoroid_spawner = meteoroid_spawner.rotated(2.0 * 3.1415 / start_meteoroids as f64, screen_centre);
     }
-    let player_poly = Polygon {points : vec![Point::new(25.0, -45.0), Point::new(-25.0, 0.0), Point::new(25.0, 45.0)]};
+    let player_poly = Polygon {points : vec![Point::new(-25.0, 45.0), Point::new(25.0, 0.0), Point::new(-25.0, -45.0)]};
 
-    let mut player = Player::new(player_poly, Point::new(50.0, 50.0));
+    let mut player = Player::new(player_poly, screen_centre.clone());
 
     let mut event_pump = sdl_context.event_pump().unwrap();
     'running: loop {

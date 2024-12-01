@@ -4,6 +4,7 @@ use rand;
 use sdl2::render::{Canvas, RenderTarget};
 use sdl2::gfx::primitives::DrawRenderer;
 use sdl2::pixels::Color;
+use crate::{WINDOW_WIDTH, WINDOW_HEIGHT};
 
 pub struct Asteroid {
     shape: Polygon,
@@ -15,6 +16,9 @@ pub struct Asteroid {
     inertia: f64
 }
 
+const WINDOW_MARGIN: f64 = 250.0;
+
+
 impl Asteroid {
     pub fn new(mut poly: Polygon, pos: Point, dx: f64, dy: f64, rot: f64) -> Asteroid {
         poly.shift(pos.x, pos.y);
@@ -23,11 +27,10 @@ impl Asteroid {
         Asteroid{shape: poly, dx, dy, rot, mass, inertia}
     }
 
-    pub fn get_randomized(approx_radius: f64) -> Asteroid {
+    pub fn get_randomized(approx_radius: f64, pos: Point, vel: Point) -> Asteroid {
         let num_points = (rand::random::<f64>() * 6.0) as i64 + 5;
         let mut points: Vec<Point> = vec![];
         let centre = Point::new(0.0, 0.0);
-        let pos = Point::new(rand::random::<f64>() * 400.0 + 100.0, rand::random::<f64>() * 600.0 + 100.0);
         let safe_margin: f64 = 2.0;
         for i in 0..num_points {
             points.push(Point::new(
@@ -55,8 +58,8 @@ impl Asteroid {
                 break 'make_convex;
             }
         }
-        let dx = (rand::random::<f64>()-0.5) * approx_radius;
-        let dy = (rand::random::<f64>()-0.5) * approx_radius;
+        let dx = vel.x;
+        let dy = vel.y;
         return Asteroid::new(Polygon{ points }, pos, dx, dy, 0.0);
     }
 
@@ -126,14 +129,14 @@ impl Asteroid {
 
         for i in 0..self.shape.points.len() {
             let p = self.shape.points[i];
-            if p.x < 0.0 {
-                self.solve_wall_collision(Point::new(-p.x, 0.0), p, Point::new(1.0, 0.0));
-            } else if p.x > 800.0 {
-                self.solve_wall_collision(Point::new(800.0 - p.x, 0.0), p, Point::new(-1.0, 0.0));
-            } else if p.y < 0.0 {
-                self.solve_wall_collision(Point::new(0.0, -p.y), p, Point::new(0.0, 1.0));
-            } else if p.y > 600.0 {
-                self.solve_wall_collision(Point::new(0.0, 600.0 - p.y), p, Point::new(0.0, -1.0));
+            if p.x < -WINDOW_MARGIN {
+                self.solve_wall_collision(Point::new(-WINDOW_MARGIN-p.x, 0.0), p, Point::new(1.0, 0.0));
+            } else if p.x > WINDOW_WIDTH + WINDOW_MARGIN {
+                self.solve_wall_collision(Point::new(WINDOW_WIDTH + WINDOW_MARGIN - p.x, 0.0), p, Point::new(-1.0, 0.0));
+            } else if p.y < -WINDOW_MARGIN {
+                self.solve_wall_collision(Point::new(0.0, -WINDOW_MARGIN-p.y), p, Point::new(0.0, 1.0));
+            } else if p.y > WINDOW_HEIGHT + WINDOW_MARGIN {
+                self.solve_wall_collision(Point::new(0.0, WINDOW_HEIGHT + WINDOW_MARGIN - p.y), p, Point::new(0.0, -1.0));
             }
         }
     }
@@ -146,8 +149,16 @@ impl Asteroid {
         let vx = self.shape.points.iter().map(|p| p.x as i16).collect::<Vec<_>>();
         let vy = self.shape.points.iter().map(|p| p.y as i16).collect::<Vec<_>>();
 
-        canvas.aa_polygon(&vx, &vy, Color::RGB(0xff, 0xff, 0xff))?;
+        let centre = self.shape.centre();
+        let screen_centre = Point::new(WINDOW_WIDTH / 2.0, WINDOW_HEIGHT / 2.0);
+        let pos_len = ((screen_centre.x - centre.x) * (screen_centre.x - centre.x) + (screen_centre.y - centre.y) * (screen_centre.y - centre.y)).sqrt();
+        let vel_len = (self.dx * self.dx + self.dy * self.dy).sqrt();
+        if (self.dx / vel_len * (screen_centre.x - centre.x) / pos_len + self.dy / vel_len * (screen_centre.y - centre.y) / pos_len) < -1.0 {
+            canvas.aa_polygon(&vx, &vy, Color::RGB(0xff, 0x00, 0x00))?;
+        } else {
 
+        canvas.aa_polygon(&vx, &vy, Color::RGB(0xff, 0xff, 0xff))?;
+        }
 
         // let mut i = 0;
         // 'draw_lines: loop {

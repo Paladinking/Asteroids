@@ -70,8 +70,11 @@ impl Player {
             return Ok(());
         }
 
-        let vx = self.shape.points.iter().map(|p| (self.pos.x + p.x) as i16).collect::<Vec<_>>();
-        let vy = self.shape.points.iter().map(|p| (self.pos.y + p.y) as i16).collect::<Vec<_>>();
+        let rot = self.vel.y.atan2(self.vel.x);
+        let centre = Point::new(0.0, 0.0);
+
+        let vx = self.shape.points.iter().map(|p| (self.pos.x + p.rotated(rot, centre).x) as i16).collect::<Vec<_>>();
+        let vy = self.shape.points.iter().map(|p| (self.pos.y + p.rotated(rot, centre).y) as i16).collect::<Vec<_>>();
 
         canvas.aa_polygon(&vx, &vy, Color::RGB(255, 0, 0))?;
 
