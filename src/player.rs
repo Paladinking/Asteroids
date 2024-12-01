@@ -3,8 +3,9 @@ use sdl2::gfx::primitives::DrawRenderer;
 use sdl2::pixels::Color;
 use crate::asteroid::Asteroid;
 use crate::shapes::{Point, Polygon};
+use crate::{WINDOW_HEIGHT, WINDOW_WIDTH};
 
-const ACCELERATION: f64 = 500.0;
+const ACCELERATION: f64 = 2000.0;
 // const MAX_VEL: f64 = 250.0;
 const FIRING_TIME: f64 = 0.25;
 const LASER_LENGTH: f64 = 1000.0;
@@ -99,6 +100,16 @@ impl Player {
         // }
 
         self.pos = self.pos + Point::new(self.vel.x * delta, self.vel.y * delta);
+        if self.pos.x < 0.0 {
+            self.pos.x = 0.0;
+        } else if self.pos.x > WINDOW_WIDTH {
+            self.pos.x = WINDOW_WIDTH;
+        }
+        if self.pos.y < 0.0 {
+            self.pos.y = 0.0;
+        } else if self.pos.y > WINDOW_HEIGHT {
+            self.pos.y = WINDOW_HEIGHT;
+        }
 
         if self.firing > 0.0 {
             self.firing = (self.firing - delta).clamp(0.0, FIRING_TIME);

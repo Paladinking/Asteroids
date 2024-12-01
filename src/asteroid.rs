@@ -29,17 +29,17 @@ impl Asteroid {
     }
 
     pub fn small(&self) -> bool {
-        return self.shape.area() < 100.0;
+        return self.shape.area() < 50.0;
     }
 
     pub fn split(&mut self, p1: Point, p2: Point) -> Option<Asteroid> {
         let mut it = self.shape.lines().enumerate();
 
         loop {
-            let (ix, (pa1, pa2)) = if let Some((ix, (pa1, pa2))) = it.next() { (ix, (pa1, pa2)) } else { return None; };
+            let (ix, (pa1, pa2)) = it.next()?;
             if let Some(p) = line_intersects(pa1, pa2, p1, p2) {
                 loop {
-                    let (ix2, (pb1, pb2)) = if let Some((ix2, (pb1, pb2))) = it.next() { (ix2, (pb1, pb2)) } else { return None; };
+                    let (ix2, (pb1, pb2)) = it.next()?;
                     if let Some(q) = line_intersects(pb1, pb2, p1, p2) {
                         let mut v = Vec::new();
                         let mut v2 = Vec::new();
@@ -59,7 +59,13 @@ impl Asteroid {
                         assert!(v.len() > 2);
                         assert!(v2.len() > 2);
                         self.shape.points = v;
-                        return Some(Asteroid::new(Polygon {points: v2}, Point::new(0.0, 0.0), self.dx, self.dy, self.rot));
+                        let poly = Polygon {points: v2};
+                        let mut diff = self.shape.centre() - poly.centre();
+                        diff = diff / diff.len();
+                        let v = Point::new(self.dx, self.dy) - 50.0 * diff;
+                        self.dx += 50.0 * diff.x;
+                        self.dy += 50.0 * diff.y;
+                        return Some(Asteroid::new(poly, Point::new(0.0, 0.0), v.x, v.y, self.rot));
                     }
                 }
             }
@@ -107,7 +113,7 @@ impl Asteroid {
     }
 
     pub fn solve_polygon_collision(&mut self, other: &mut Asteroid, p: Point, shift: Point, normal: Point) {
-        const ELASTICITY: f64 = 1.0;
+        const ELASTICITY: f64 = 0.5;
 
         self.shape.shift(shift.x, shift.y);
         let centre_a = self.shape.centre();

@@ -113,7 +113,8 @@ pub fn line_intersects(pa1: Point, pa2: Point, pb1: Point, pb2: Point) -> Option
         return None;
     }
     let t = ((pa1.x - pb1.x) * (pb1.y - pb2.y) - (pa1.y - pb1.y) * (pb1.x - pb2.x)) / denom;
-    if 0.0 <= t && t <= 1.0 {
+    let u = -((pa1.x - pa2.x) * (pa1.y - pb1.y) - (pa1.y - pa2.y) * (pa1.x - pb1.x)) / denom;
+    if 0.0 <= t && t <= 1.0 && 0.0 <= u {
         return Some(pa1 + t * (pa2 - pa1));
     }
     return None;
