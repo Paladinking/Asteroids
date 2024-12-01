@@ -114,11 +114,17 @@ impl Player {
         self.laser.pos_end = target + dir * LASER_LENGTH;
         self.firing = FIRING_TIME;
         let mut new = Vec::new();
-        for a in asteroids.iter_mut() {
+        asteroids.retain_mut(|a| {
             if let Some(a2) = a.split(self.laser.pos_start, self.laser.pos_end) {
-                new.push(a2);
+                if !a2.small() {
+                    new.push(a2);
+                }
+                if a.small() {
+                    return false;
+                }
             }
-        }
+            return true;
+        });
         asteroids.append(&mut new);
     }
 }

@@ -24,6 +24,10 @@ impl Asteroid {
         Asteroid{shape: poly, dx, dy, rot, mass, inertia}
     }
 
+    pub fn small(&self) -> bool {
+        return self.shape.area() < 100.0;
+    }
+
     pub fn split(&mut self, p1: Point, p2: Point) -> Option<Asteroid> {
         let mut it = self.shape.lines().enumerate();
 
